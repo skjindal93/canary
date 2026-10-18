@@ -3,7 +3,8 @@ export default {
     display: 'flex',
     flexDirection: 'column',
     width: '100%',
-    maxWidth: '440px',
+    maxWidth: '600px',
+    marginInline: 'auto',
     height: '100%',
     flex: '1',
     minHeight: '0',
@@ -45,7 +46,7 @@ export default {
 
   '.cn-single-pane-stepper-v2-content-header': {
     gap: 'var(--cn-spacing-3)',
-    marginBottom: 'var(--cn-spacing-2)',
+    marginBottom: 'calc(var(--cn-spacing-2) + var(--cn-spacing-3))',
     flexShrink: '0'
   },
 
@@ -61,31 +62,69 @@ export default {
   },
 
   '.cn-single-pane-stepper-v2-list': {
-    minWidth: '0'
+    minWidth: '0',
+    listStyle: 'none',
+    margin: '0',
+    padding: '0'
   },
 
-  '.cn-single-pane-stepper-v2-step-item': {
+  // Both classes are required. `.cn-stepper-step-item` is emitted later and would otherwise
+  // win (flex column, 12px head padding). That stacks the circle above the card and lets the
+  // absolute connector run through the title. The compound selector keeps the rail in column 1.
+  '.cn-stepper-step-item.cn-single-pane-stepper-v2-step-item': {
     display: 'grid',
     gridTemplateColumns: 'var(--cn-size-5) minmax(0, 1fr)',
     columnGap: 'var(--cn-spacing-4)',
     alignItems: 'start',
-    paddingBottom: 'var(--cn-spacing-6)',
+    margin: '0',
+    padding: '0 0 var(--cn-spacing-6)',
+
+    '&:last-child': {
+      paddingBottom: '0'
+    },
 
     '& > .cn-stepper-step': {
-      display: 'block',
+      display: 'flex',
+      alignItems: 'flex-start',
+      justifyContent: 'center',
       width: 'var(--cn-size-5)',
+      height: 'auto',
+      margin: '0',
+      // Shared `.cn-stepper-step` pads 12px, which drops the circle below the title.
+      padding: '0',
       gridColumn: '1',
       gridRow: '1'
+    },
+
+    '& > .cn-stepper-connector': {
+      gridColumn: '1',
+      gridRow: '1',
+      // Shared connector top/bottom assume the 12px head pad. Start under this circle and
+      // stop at the item edge so the trunk meets the next circle without crossing the card.
+      left: 'calc((var(--cn-size-5) - var(--cn-spacing-px)) / 2)',
+      top: 'calc(var(--cn-size-5) + var(--cn-spacing-half))',
+      bottom: '0',
+      width: 'var(--cn-spacing-px)',
+      height: 'auto'
+    },
+
+    '&:last-child > .cn-stepper-connector:not(.cn-single-pane-stepper-v2-connector-fade)': {
+      display: 'none'
+    },
+
+    // Shared `.cn-stepper-step-item:last-child` hides the trunk when nothing follows.
+    // Keep this one, solid for most of its length, then fade out at the bottom.
+    '&:last-child > .cn-stepper-connector.cn-single-pane-stepper-v2-connector-fade': {
+      display: 'block',
+      bottom: '0',
+      background: 'linear-gradient(to bottom, var(--cn-border-brand) 0%, var(--cn-border-brand) 72%, transparent 100%)'
     },
 
     '& > .cn-single-pane-stepper-v2-card': {
       gridColumn: '2',
       gridRow: '1',
+      margin: '0',
       minWidth: '0'
-    },
-
-    '&:last-child': {
-      paddingBottom: '0'
     }
   },
 
@@ -119,19 +158,46 @@ export default {
 
   '.cn-single-pane-stepper-v2-card-title-row': {
     display: 'flex',
-    alignItems: 'baseline',
-    gap: 'var(--cn-spacing-2)',
+    flexWrap: 'wrap',
+    alignItems: 'flex-start',
+    columnGap: 'var(--cn-spacing-2)',
+    rowGap: 'var(--cn-spacing-1)',
     minWidth: '0'
   },
 
   '.cn-single-pane-stepper-v2-card-title': {
-    margin: '0',
-    minWidth: '0'
+    margin: '0'
   },
 
+  // Do not grow the title. A flex-grow basis pushes the badge to the far edge of the row.
+  // minWidth still keeps a few words on the first line so a nowrap badge wraps under
+  // the question instead of squeezing it to one character.
+  '.cn-single-pane-stepper-v2-card-title-row .cn-single-pane-stepper-v2-card-title': {
+    minWidth: 'min(100%, 8rem)',
+    flex: '0 1 auto'
+  },
+
+  // Same chip as `.cn-stepper-step-badge`: gray outline at rest, blue outline on the active step.
   '.cn-single-pane-stepper-v2-step-badge': {
+    display: 'inline-flex',
+    alignItems: 'center',
     flexShrink: '0',
-    whiteSpace: 'nowrap'
+    whiteSpace: 'nowrap',
+    marginTop: 'var(--cn-spacing-half)',
+    padding: 'var(--cn-spacing-half) var(--cn-spacing-2)',
+    borderRadius: 'var(--cn-rounded-2)',
+    border: 'var(--cn-spacing-px) solid var(--cn-border-2)',
+    background: 'var(--cn-bg-2)',
+    color: 'var(--cn-text-3)',
+    fontSize: '11px',
+    fontWeight: 'var(--cn-font-weight-default-normal-600)',
+    lineHeight: '1.35'
+  },
+
+  '.cn-single-pane-stepper-v2-card-active .cn-single-pane-stepper-v2-step-badge': {
+    borderColor: 'var(--cn-set-blue-outline-border)',
+    background: 'var(--cn-set-blue-outline-bg)',
+    color: 'var(--cn-set-blue-outline-text)'
   },
 
   '.cn-single-pane-stepper-v2-card-description': {
@@ -146,21 +212,35 @@ export default {
   },
 
   '.cn-single-pane-stepper-v2-answer': {
-    alignSelf: 'stretch',
-    alignItems: 'stretch',
-    width: '100%',
+    alignSelf: 'flex-end',
+    alignItems: 'flex-end',
+    width: 'fit-content',
+    maxWidth: '100%',
 
     '&.cn-message-bubble-user': {
-      alignSelf: 'stretch',
+      alignSelf: 'flex-end',
 
       '.cn-message-bubble-content': {
-        alignSelf: 'stretch',
-        width: '100%'
+        alignSelf: 'flex-end',
+        width: 'fit-content',
+        maxWidth: '100%'
       }
     },
 
     '.cn-message-bubble-footer': {
-      justifyContent: 'flex-end'
+      justifyContent: 'flex-end',
+      flexWrap: 'nowrap',
+      alignItems: 'center',
+      margin: '0',
+
+      // Edit and copy use ghost buttons (`--cn-text-2`). Match the timestamp (`--cn-text-3`).
+      '& .cn-button': {
+        color: 'var(--cn-text-3)',
+
+        '&:hover:not(:disabled), &:active:not(:disabled)': {
+          color: 'var(--cn-text-3)'
+        }
+      }
     }
   }
 }

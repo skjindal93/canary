@@ -4,10 +4,10 @@ import {
   Button,
   ButtonLayout,
   CardSelect,
-  Input,
   Radio,
   SinglePaneStepperV2,
   Textarea,
+  TextInput,
   TooltipProvider,
   useFlowCard,
 } from "@harnessio/ui/components";
@@ -58,7 +58,7 @@ function IdentityCard() {
       <CardSelect.Root
         type="single"
         value={value}
-        onValueChange={(next) => setValue(String(next))}
+        onValueChange={(next: unknown) => setValue(String(next))}
       >
         <CardSelect.Item value="anonymous">Anonymous visitors</CardSelect.Item>
         <CardSelect.Item value="user-id">Logged-in users by ID</CardSelect.Item>
@@ -113,7 +113,7 @@ function NameCard() {
       title="What should we name this flag?"
       description="Use a stable identifier. This becomes the flag key in code."
     >
-      <Input
+      <TextInput
         name="flag-name"
         value={value}
         onChange={(event) => setValue(event.target.value)}
@@ -179,7 +179,7 @@ function RolloutCard() {
       <CardSelect.Root
         type="single"
         value={value}
-        onValueChange={(next) => setValue(String(next))}
+        onValueChange={(next: unknown) => setValue(String(next))}
       >
         <CardSelect.Item value="off">
           Serve the default variation
@@ -206,6 +206,7 @@ function ReviewCard() {
   const { state, complete } = useFlowCard<{
     flagName?: string;
     environment?: string;
+    answer?: string;
   }>();
   const summary = `Create ${state.flagName ?? "this flag"} in ${state.environment ?? "QA"}`;
 
@@ -225,69 +226,73 @@ function ReviewCard() {
 
 const flagOnboardingFlow: FlowConfig = {
   steps: {
-    goal: { title: "Goal" },
-    identity: { title: "Identity" },
-    audience: { title: "Audience" },
-    name: { title: "Name" },
-    environment: { title: "Environment" },
-    rollout: { title: "Rollout" },
-    review: { title: "Review" },
-  },
-  subSteps: {
     goal: {
-      step: "goal",
       title: "What do you want your first flag to do?",
       component: GoalCard,
       next: "identity",
     },
     identity: {
-      step: "identity",
       title: "How should we identify users?",
       component: IdentityCard,
       next: "audience",
     },
     audience: {
-      step: "audience",
       title: "Who should see the new experience?",
       component: AudienceCard,
       next: "name",
     },
     name: {
-      step: "name",
       title: "What should we name this flag?",
       component: NameCard,
       next: "environment",
     },
     environment: {
-      step: "environment",
       title: "Where will this flag live first?",
       component: EnvironmentCard,
       next: "rollout",
     },
     rollout: {
-      step: "rollout",
       title: "How should we roll it out?",
       component: RolloutCard,
       next: "review",
     },
     review: {
-      step: "review",
       title: "Ready to create this flag?",
       component: ReviewCard,
     },
   },
-  initialSubStep: "goal",
+  initialStep: "goal",
 };
 
 export function FlagOnboardingDemo() {
+  const [showInactiveSteps, setShowInactiveSteps] = useState(true);
+
   return (
-    <TooltipProvider>
-      <SinglePaneStepperV2.Root
-        flow={flagOnboardingFlow}
-        contentTitle="Create your first feature flag"
-        contentSubtitle="Answer each question. Completed answers stay in the thread as chat messages."
-        showRootHeader={false}
-      />
-    </TooltipProvider>
+    // .not-content opts the timeline out of Starlight prose rules (list markers, li spacing,
+    // heading sizes) that otherwise collide with the stepper rail.
+    <div className="not-content my-6">
+      <Radio.Root
+        value={showInactiveSteps ? "show" : "hide"}
+        onValueChange={(next) => setShowInactiveSteps(next === "show")}
+        className="mb-cn-md grid-flow-col auto-cols-max"
+        aria-label="Inactive steps"
+      >
+        <Radio.Item value="show" label="Show inactive steps" />
+        <Radio.Item value="hide" label="Hide inactive steps" />
+      </Radio.Root>
+      <div className="h-[720px] overflow-hidden rounded-lg border border-cn-2 bg-cn-2">
+        <div className="h-full">
+          <TooltipProvider>
+            <SinglePaneStepperV2.Root
+              flow={flagOnboardingFlow}
+              contentTitle="Create your first feature flag"
+              contentSubtitle="Answer each question. Completed answers stay in the thread as chat messages."
+              showRootHeader={false}
+              showInactiveSteps={showInactiveSteps}
+            />
+          </TooltipProvider>
+        </div>
+      </div>
+    </div>
   );
 }
