@@ -405,7 +405,7 @@ export default defineConfig({
             "growth-patterns/single-pane-stepper",
             {
               slug: "growth-patterns/single-pane-stepper-v2",
-              label: "Single Pane Stepper v2",
+              label: "Single Pane Chat Stepper",
             },
             {
               slug: "growth-patterns/dual-pane-stepper",

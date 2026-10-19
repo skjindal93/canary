@@ -1,5 +1,5 @@
 ---
-title: Single Pane Stepper v2
+title: Single Pane Chat Stepper
 description: A single-column guided flow that keeps the stepper timeline and shows completed answers as chat messages instead of accordion cards.
 ---
 
@@ -7,15 +7,15 @@ import { DocsPage } from "@/components/docs-page";
 import { Aside } from "@astrojs/starlight/components";
 import { FlagOnboardingDemo } from "@/components/single-pane-stepper-v2-demo";
 
-The `SinglePaneStepperV2` is a single-column guided flow for conversational setup. It keeps the vertical stepper timeline from the original [Single Pane Stepper](/growth-patterns/single-pane-stepper) — checkmarks, connectors, and step badges — but completed answers render as chat messages.
+The Single Pane Chat Stepper (`SinglePaneStepperV2`) is a single-column guided flow for conversational setup. It keeps the vertical stepper timeline from the original [Single Pane Stepper](/growth-patterns/single-pane-stepper) — checkmarks, connectors, and step badges — but completed answers render as chat messages.
 
 After a step is completed, the form is not collapsed into an accordion. The question stays in the timeline as the step header, and the selection appears as a user `MessageBubble` with edit, copy, and a timestamp.
 
-Use this version for onboarding and PLG flows where the thread of answers should read like a conversation.
+Use the Single Pane Chat Stepper for onboarding and PLG flows where the thread of answers should read like a conversation.
 
-## What changed from v1
+## What changed from Single Pane Stepper
 
-| v1 Single Pane Stepper                                            | v2                                                   |
+| Single Pane Stepper                                               | Single Pane Chat Stepper                             |
 | ----------------------------------------------------------------- | ---------------------------------------------------- |
 | Completed card content collapses in an accordion under the step   | Completed card content is replaced by a chat message |
 | Restart lives in the step header / accordion chrome               | Edit and copy live on the message footer             |
@@ -192,19 +192,22 @@ Completed messages include:
       name: "onReactivate",
       required: false,
       value: "(stepId: string) => void",
-      description: "Called after go-back is confirmed, with the step that is active again",
+      description:
+        "Called after go-back is confirmed, with the step that is active again",
     },
     {
       name: "initialEngineState",
       required: false,
       value: "InitialEngineState",
-      description: "Host-owned snapshot used to resume a flow instead of starting at initialStep",
+      description:
+        "Host-owned snapshot used to resume a flow instead of starting at initialStep",
     },
     {
       name: "disableAutoScroll",
       required: false,
       value: "boolean",
-      description: "Skip automatic scrolling when the active step changes. Default false.",
+      description:
+        "Skip automatic scrolling when the active step changes. Default false.",
     },
     {
       name: "onClose",
@@ -298,8 +301,8 @@ Completed messages include:
 
 1. Always send `answer` from `complete()` with a human-readable label, not a raw id (`"A subset of users"` instead of `"subset"`).
 2. Keep one question per card so the thread stays readable.
-3. Do not rebuild accordion or completed-form UI inside the card — v2 owns the completed state.
-4. Use `SinglePaneStepperV2` for conversational setup. Use `SplitPaneStepper` when users need a persistent rail and a larger workspace.
+3. Do not rebuild accordion or completed-form UI inside the card — the Single Pane Chat Stepper owns the completed state.
+4. Use the Single Pane Chat Stepper (`SinglePaneStepperV2`) for conversational setup. Use `SplitPaneStepper` when users need a persistent rail and a larger workspace.
 
 ## Accessibility
 
