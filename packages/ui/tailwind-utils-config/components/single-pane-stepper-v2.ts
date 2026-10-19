@@ -159,7 +159,7 @@ export default {
   '.cn-single-pane-stepper-v2-card-title-row': {
     display: 'flex',
     flexWrap: 'wrap',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     columnGap: 'var(--cn-spacing-2)',
     rowGap: 'var(--cn-spacing-1)',
     minWidth: '0'
@@ -183,7 +183,6 @@ export default {
     alignItems: 'center',
     flexShrink: '0',
     whiteSpace: 'nowrap',
-    marginTop: 'var(--cn-spacing-half)',
     padding: 'var(--cn-spacing-half) var(--cn-spacing-2)',
     borderRadius: 'var(--cn-rounded-2)',
     border: 'var(--cn-spacing-px) solid var(--cn-border-2)',
@@ -197,7 +196,8 @@ export default {
   '.cn-single-pane-stepper-v2-card-active .cn-single-pane-stepper-v2-step-badge': {
     borderColor: 'var(--cn-set-blue-outline-border)',
     background: 'var(--cn-set-blue-outline-bg)',
-    color: 'var(--cn-set-blue-outline-text)'
+    // Outline tags no longer have their own text token. Blue outline tags use secondary text.
+    color: 'var(--cn-set-blue-secondary-text)'
   },
 
   '.cn-single-pane-stepper-v2-card-description': {

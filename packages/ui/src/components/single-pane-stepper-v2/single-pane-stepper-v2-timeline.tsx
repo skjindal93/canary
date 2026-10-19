@@ -20,6 +20,7 @@ export function SinglePaneStepperV2Timeline({ children }: { children?: ReactNode
   const { showInactiveSteps } = useSinglePaneStepperV2Layout()
   const containerRef = useRef<HTMLDivElement>(null)
   const activeRef = useRef(activeStepId)
+  const hasCenteredRef = useRef(false)
   activeRef.current = activeStepId
 
   const predictedPath = useMemo(
@@ -31,21 +32,55 @@ export function SinglePaneStepperV2Timeline({ children }: { children?: ReactNode
     (stepId: string) => {
       if (disableAutoScroll) return
       const container = containerRef.current
-      if (!container) return
+      if (!container || container.clientHeight === 0) return
       const cardEl = container.querySelector(`[data-card-id="${stepId}"]`) as HTMLElement | null
       if (!cardEl) return
 
+      // Room above and below so the first and last steps can sit in the middle
+      // instead of sticking to the top or bottom edge.
+      const pad = Math.round(container.clientHeight / 2)
+      container.style.paddingTop = `${pad}px`
+      container.style.paddingBottom = `${pad}px`
+
+      const behavior: ScrollBehavior = hasCenteredRef.current ? 'smooth' : 'auto'
+      hasCenteredRef.current = true
+
       const containerRect = container.getBoundingClientRect()
       const cardRect = cardEl.getBoundingClientRect()
-      // The header scrolls with the steps. Don't jump it off screen when the active
-      // card is already visible.
-      if (cardRect.top >= containerRect.top && cardRect.bottom <= containerRect.bottom) return
-      const offset = cardRect.top - containerRect.top + container.scrollTop
+      const cardCenter = cardRect.top + cardRect.height / 2
+      const innerDelta = cardCenter - (containerRect.top + containerRect.height / 2)
+      const maxScroll = Math.max(0, container.scrollHeight - container.clientHeight)
+      const next = Math.min(maxScroll, Math.max(0, container.scrollTop + innerDelta))
+      const applied = next - container.scrollTop
 
       if (typeof container.scrollTo === 'function') {
-        container.scrollTo({ top: Math.max(0, offset - 16), behavior: 'smooth' })
+        container.scrollTo({ top: next, behavior })
       } else {
-        container.scrollTop = Math.max(0, offset - 16)
+        container.scrollTop = next
+      }
+
+      // The page often scrolls in a nested pane, not the document. Walk those
+      // panes and center the step in each one so it is on screen, not cut off
+      // at the bottom. `applied` is the shift the stack scroll is about to make.
+      let shift = applied
+      let node = container.parentElement
+      while (node) {
+        const overflowY = getComputedStyle(node).overflowY
+        const canScroll = (overflowY === 'auto' || overflowY === 'scroll') && node.scrollHeight > node.clientHeight + 1
+        if (canScroll) {
+          const rect = node.getBoundingClientRect()
+          const predictedCenter = cardCenter - shift
+          const delta = predictedCenter - (rect.top + rect.height / 2)
+          const max = Math.max(0, node.scrollHeight - node.clientHeight)
+          const target = Math.min(max, Math.max(0, node.scrollTop + delta))
+          shift += target - node.scrollTop
+          if (typeof node.scrollTo === 'function') {
+            node.scrollTo({ top: target, behavior })
+          } else {
+            node.scrollTop = target
+          }
+        }
+        node = node.parentElement
       }
     },
     [disableAutoScroll]

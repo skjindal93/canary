@@ -277,11 +277,11 @@ export function FlagOnboardingDemo() {
   const [showInactiveSteps, setShowInactiveSteps] = useState(true);
 
   return (
-    <div className="my-6">
+    <div className="not-content my-6">
       <Radio.Root
         value={showInactiveSteps ? "show" : "hide"}
         onValueChange={(next) => setShowInactiveSteps(next === "show")}
-        className="mb-cn-md grid-flow-col auto-cols-max"
+        className="mb-cn-md grid-flow-col auto-cols-max items-center"
         aria-label="Inactive steps"
       >
         <Radio.Item value="show" label="Show inactive steps" />
