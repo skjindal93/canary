@@ -1,6 +1,6 @@
 import { type ComponentType, type CSSProperties, type ReactNode } from 'react'
 
-import type { DrawerComponentProps, FlowConfig, ReactivationPrompt } from '../flow-stepper/engine'
+import type { DrawerComponentProps, FlowConfig, InitialEngineState, ReactivationPrompt } from '../flow-stepper/engine'
 
 export interface SinglePaneStepperV2RootProps {
   flow: FlowConfig
@@ -12,6 +12,12 @@ export interface SinglePaneStepperV2RootProps {
   contentSubtitle?: string
   drawers?: Record<string, ComponentType<DrawerComponentProps>>
   onComplete?: (state: Record<string, unknown>) => void
+  /** Called after go-back is confirmed, with the step that is active again. */
+  onReactivate?: (stepId: string) => void
+  /** Resume a flow from a host-owned snapshot instead of `flow.initialStep`. */
+  initialEngineState?: InitialEngineState
+  /** Skip automatic scrolling when the active step changes. */
+  disableAutoScroll?: boolean
   onClose?: () => void
   showRootHeader?: boolean
   hideHeader?: boolean

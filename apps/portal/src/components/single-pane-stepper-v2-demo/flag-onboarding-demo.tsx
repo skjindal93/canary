@@ -13,10 +13,17 @@ import {
 } from "@harnessio/ui/components";
 import type { FlowConfig } from "@harnessio/ui/components";
 
+function savedValue(value: unknown, fallback: string) {
+  return typeof value === "string" && value.length > 0 ? value : fallback;
+}
+
 function GoalCard() {
-  const { complete } = useFlowCard();
-  const [value, setValue] = useState(
-    "Switch a Sign Up button from blue to green, or change its copy, for a subset of users.",
+  const { state, complete } = useFlowCard<{ goal?: string }>();
+  const [value, setValue] = useState(() =>
+    savedValue(
+      state.goal,
+      "Switch a Sign Up button from blue to green, or change its copy, for a subset of users.",
+    ),
   );
 
   return (
@@ -43,8 +50,8 @@ function GoalCard() {
 }
 
 function IdentityCard() {
-  const { complete } = useFlowCard();
-  const [value, setValue] = useState<string>("user-id");
+  const { state, complete } = useFlowCard<{ identity?: string }>();
+  const [value, setValue] = useState(() => savedValue(state.identity, "user-id"));
   const labels: Record<string, string> = {
     anonymous: "Anonymous visitors",
     "user-id": "Logged-in users by ID",
@@ -75,8 +82,8 @@ function IdentityCard() {
 }
 
 function AudienceCard() {
-  const { complete } = useFlowCard();
-  const [value, setValue] = useState("subset");
+  const { state, complete } = useFlowCard<{ audience?: string }>();
+  const [value, setValue] = useState(() => savedValue(state.audience, "subset"));
   const labels: Record<string, string> = {
     everyone: "Everyone",
     subset: "A subset of users",
@@ -105,8 +112,10 @@ function AudienceCard() {
 }
 
 function NameCard() {
-  const { complete } = useFlowCard();
-  const [value, setValue] = useState("signup-button-color");
+  const { state, complete } = useFlowCard<{ flagName?: string }>();
+  const [value, setValue] = useState(() =>
+    savedValue(state.flagName, "signup-button-color"),
+  );
 
   return (
     <SinglePaneStepperV2.Card
@@ -131,8 +140,8 @@ function NameCard() {
 }
 
 function EnvironmentCard() {
-  const { complete } = useFlowCard();
-  const [value, setValue] = useState("qa");
+  const { state, complete } = useFlowCard<{ environment?: string }>();
+  const [value, setValue] = useState(() => savedValue(state.environment, "qa"));
   const labels: Record<string, string> = {
     qa: "QA",
     staging: "Staging",
@@ -163,8 +172,8 @@ function EnvironmentCard() {
 }
 
 function RolloutCard() {
-  const { complete } = useFlowCard();
-  const [value, setValue] = useState("percentage");
+  const { state, complete } = useFlowCard<{ rollout?: string }>();
+  const [value, setValue] = useState(() => savedValue(state.rollout, "percentage"));
   const labels: Record<string, string> = {
     off: "Serve the default variation",
     percentage: "Roll out to 10% of users",
@@ -268,9 +277,7 @@ export function FlagOnboardingDemo() {
   const [showInactiveSteps, setShowInactiveSteps] = useState(true);
 
   return (
-    // .not-content opts the timeline out of Starlight prose rules (list markers, li spacing,
-    // heading sizes) that otherwise collide with the stepper rail.
-    <div className="not-content my-6">
+    <div className="my-6">
       <Radio.Root
         value={showInactiveSteps ? "show" : "hide"}
         onValueChange={(next) => setShowInactiveSteps(next === "show")}
@@ -281,7 +288,7 @@ export function FlagOnboardingDemo() {
         <Radio.Item value="hide" label="Hide inactive steps" />
       </Radio.Root>
       <div className="h-[720px] overflow-hidden rounded-lg border border-cn-2 bg-cn-2">
-        <div className="h-full">
+        <div className="not-content h-full">
           <TooltipProvider>
             <SinglePaneStepperV2.Root
               flow={flagOnboardingFlow}

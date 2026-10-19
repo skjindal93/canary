@@ -206,6 +206,59 @@ describe('SinglePaneStepperV2', () => {
     expect(container.querySelector('.cn-single-pane-stepper-v2-connector-fade')).toBeInTheDocument()
   })
 
+  test('badge total follows this run, not every configured step', () => {
+    function StartCard() {
+      return (
+        <SinglePaneStepperV2.Card title="Start">
+          <span>Start form</span>
+        </SinglePaneStepperV2.Card>
+      )
+    }
+    function PathCard() {
+      return <SinglePaneStepperV2.Card title="On the path">Path</SinglePaneStepperV2.Card>
+    }
+    function OtherCard() {
+      return <SinglePaneStepperV2.Card title="Other branch">Other</SinglePaneStepperV2.Card>
+    }
+
+    const flow: FlowConfig = {
+      steps: {
+        start: { title: 'Start', component: StartCard, next: 'path' },
+        path: { title: 'On the path', component: PathCard },
+        other: { title: 'Other branch', component: OtherCard }
+      },
+      initialStep: 'start'
+    }
+
+    render(<SinglePaneStepperV2.Root flow={flow} />)
+    expect(screen.getByText('Step 1/2')).toBeInTheDocument()
+    expect(screen.queryByText('Other branch')).not.toBeInTheDocument()
+  })
+
+  test('resumes from initialEngineState', () => {
+    render(
+      <SinglePaneStepperV2.Root
+        flow={testFlow}
+        initialEngineState={{
+          state: { answer: 'restored' },
+          cardHistory: [
+            {
+              stepId: 'goal',
+              status: 'completed',
+              stateSnapshot: {
+                answer: 'Switch a Sign Up button from blue to green, or change its copy, for a subset of users.'
+              },
+              answer: 'Switch a Sign Up button from blue to green, or change its copy, for a subset of users.'
+            },
+            { stepId: 'targeting', status: 'active', stateSnapshot: {} }
+          ]
+        }}
+      />
+    )
+    expect(screen.getByText('Who should see the new experience?')).toBeInTheDocument()
+    expect(screen.queryByText('Continue')).not.toBeInTheDocument()
+  })
+
   test('calls onClose from the root header', async () => {
     const onClose = vi.fn()
     render(<SinglePaneStepperV2.Root flow={testFlow} title="Create a feature flag" onClose={onClose} />)

@@ -7,32 +7,30 @@ import { DocsPage } from "@/components/docs-page";
 import { Aside } from "@astrojs/starlight/components";
 import { FlagOnboardingDemo } from "@/components/single-pane-stepper-v2-demo";
 
-The `SinglePaneStepperV2` is a single-column guided flow for conversational setup. It keeps the vertical stepper timeline from the original [Single Pane Stepper](https://harness-design.netlify.app/growth-patterns/single-pane-stepper/) — checkmarks, connectors, and step badges — but completed answers render as chat messages.
+The `SinglePaneStepperV2` is a single-column guided flow for conversational setup. It keeps the vertical stepper timeline from the original [Single Pane Stepper](/growth-patterns/single-pane-stepper) — checkmarks, connectors, and step badges — but completed answers render as chat messages.
 
 After a step is completed, the form is not collapsed into an accordion. The question stays in the timeline as the step header, and the selection appears as a user `MessageBubble` with edit, copy, and a timestamp.
 
 Use this version for onboarding and PLG flows where the thread of answers should read like a conversation.
 
+## What changed from v1
+
+| v1 Single Pane Stepper                                            | v2                                                   |
+| ----------------------------------------------------------------- | ---------------------------------------------------- |
+| Completed card content collapses in an accordion under the step   | Completed card content is replaced by a chat message |
+| Restart lives in the step header / accordion chrome               | Edit and copy live on the message footer             |
+| Same `FlowConfig` + `useFlowCard` engine as the dual pane stepper | Same `FlowConfig` and `useFlowCard` API in this repo |
+
 ## Interactive Example
 
-This example walks through creating a first feature flag. Complete a step to see the answer land as a chat message.
+This example walks through creating a first feature flag. Complete a step to see the answer land as a chat message. Hide inactive steps to drop the upcoming questions and fade the active connector out.
 
-<div className="h-[720px] border border-cn-2 rounded-lg overflow-hidden my-6 bg-cn-2">
-  <FlagOnboardingDemo client:only="react" />
-</div>
+<FlagOnboardingDemo client:only="react" />
 
 <Aside type="tip">
   Use the edit control on a completed message to go back. Subsequent answers are
   discarded after confirmation.
 </Aside>
-
-## What changed from v1
-
-| v1 Single Pane Stepper                                                    | v2                                                   |
-| ------------------------------------------------------------------------- | ---------------------------------------------------- |
-| Completed card content collapses in an accordion under the step           | Completed card content is replaced by a chat message |
-| Restart lives in the step header / accordion chrome                       | Edit and copy live on the message footer             |
-| Same `FlowConfig` + `useFlowCard` engine as the dual / split pane stepper | Same `FlowConfig` and `useFlowCard` API in this repo |
 
 ## Usage
 
@@ -64,14 +62,17 @@ function GoalCard() {
 
 const flow: FlowConfig = {
   steps: {
-    goal: { title: "Goal" },
-    targeting: { title: "Targeting" },
+    goal: {
+      title: "What do you want your first flag to do?",
+      component: GoalCard,
+      next: "targeting",
+    },
+    targeting: {
+      title: "Who should see the new experience?",
+      component: TargetingCard,
+    },
   },
-  subSteps: {
-    goal: { step: "goal", component: GoalCard, next: "targeting" },
-    targeting: { step: "targeting", component: TargetingCard },
-  },
-  initialSubStep: "goal",
+  initialStep: "goal",
 };
 
 <SinglePaneStepperV2.Root
@@ -85,7 +86,7 @@ const flow: FlowConfig = {
 
 ```typescript jsx
 <SinglePaneStepperV2.Root flow={flowConfig}>
-  {/* Cards are rendered automatically from flowConfig.subSteps */}
+  {/* Cards are rendered automatically from flow.steps */}
 </SinglePaneStepperV2.Root>
 ```
 
@@ -117,11 +118,13 @@ You can also pass `answer` on the card. The card resolves display text in this o
 2. `answer` stored on the completed history entry
 3. `stateSnapshot.answer`
 
-When a step is **active** or **errored**, the card renders `children` (the form). When it is **completed**, `children` are not shown — only the question header and the chat message. There is no accordion expand/collapse for the completed question.
+When a step is **active** or **errored**, the card renders `children` (the form). When it is **completed**, `children` are not shown. A resolved answer renders as the chat message; if there is no answer, the card renders the question header and nothing else. There is no accordion expand/collapse for the completed question.
+
+`onComplete` runs only when `complete()` is called on a step that is already terminal and has no `next`. That path does not store `answer` or `completedAt`, so a last step flagged `terminal` cannot both notify the host and become a chat message. Leave the last step unflagged and pass `answer` from `complete()` to show the message. `onComplete` does not run for that first completion.
 
 Completed messages include:
 
-- Edit — reactivates the step after the same confirmation dialog used by the split-pane stepper
+- Edit — reactivates the step after the same confirmation dialog used by the other steppers
 - Copy — copies the answer text
 - Timestamp — local time from when `complete()` ran
 
@@ -133,8 +136,7 @@ Completed messages include:
       name: "flow",
       required: true,
       value: "FlowConfig",
-      description:
-        "Flow configuration defining steps, substeps, and the initial substep",
+      description: "Flow configuration defining steps and the initial step",
     },
     {
       name: "icon",
@@ -183,7 +185,26 @@ Completed messages include:
       name: "onComplete",
       required: false,
       value: "(state: Record<string, unknown>) => void",
-      description: "Called when the last card completes",
+      description:
+        "Called when complete() runs on an already-terminal step with no next. That call does not store answer or completedAt.",
+    },
+    {
+      name: "onReactivate",
+      required: false,
+      value: "(stepId: string) => void",
+      description: "Called after go-back is confirmed, with the step that is active again",
+    },
+    {
+      name: "initialEngineState",
+      required: false,
+      value: "InitialEngineState",
+      description: "Host-owned snapshot used to resume a flow instead of starting at initialStep",
+    },
+    {
+      name: "disableAutoScroll",
+      required: false,
+      value: "boolean",
+      description: "Skip automatic scrolling when the active step changes. Default false.",
     },
     {
       name: "onClose",
@@ -216,6 +237,13 @@ Completed messages include:
       value: "boolean",
       description:
         "Show a Step n/total label next to each question. Default true.",
+    },
+    {
+      name: "showInactiveSteps",
+      required: false,
+      value: "boolean",
+      description:
+        "Show upcoming steps that have not been visited. When false, the active connector fades to transparent. Default true.",
     },
     {
       name: "className",
@@ -279,4 +307,4 @@ Completed messages include:
 - Completed indicators are buttons that request reactivation
 - Message edit is labeled `Edit this answer`
 - Copy uses the existing `CopyButton` control
-- The go-back confirmation dialog is the same warning `AlertDialog` used by the split-pane stepper
+- The go-back confirmation dialog is the same warning `AlertDialog` used by the other steppers

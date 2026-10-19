@@ -15,7 +15,8 @@ function statusToStepState(status: CardStatus) {
 }
 
 export function SinglePaneStepperV2Timeline({ children }: { children?: ReactNode }) {
-  const { flow, cardHistory, activeStepId, registerScrollToCard, requestReactivation } = useEngineContext()
+  const { flow, cardHistory, activeStepId, registerScrollToCard, requestReactivation, disableAutoScroll } =
+    useEngineContext()
   const { showInactiveSteps } = useSinglePaneStepperV2Layout()
   const containerRef = useRef<HTMLDivElement>(null)
   const activeRef = useRef(activeStepId)
@@ -26,25 +27,29 @@ export function SinglePaneStepperV2Timeline({ children }: { children?: ReactNode
     [flow, cardHistory, activeStepId]
   )
 
-  const scrollToCard = useCallback((stepId: string) => {
-    const container = containerRef.current
-    if (!container) return
-    const cardEl = container.querySelector(`[data-card-id="${stepId}"]`) as HTMLElement | null
-    if (!cardEl) return
+  const scrollToCard = useCallback(
+    (stepId: string) => {
+      if (disableAutoScroll) return
+      const container = containerRef.current
+      if (!container) return
+      const cardEl = container.querySelector(`[data-card-id="${stepId}"]`) as HTMLElement | null
+      if (!cardEl) return
 
-    const containerRect = container.getBoundingClientRect()
-    const cardRect = cardEl.getBoundingClientRect()
-    // The header scrolls with the steps. Don't jump it off screen when the active
-    // card is already visible.
-    if (cardRect.top >= containerRect.top && cardRect.bottom <= containerRect.bottom) return
-    const offset = cardRect.top - containerRect.top + container.scrollTop
+      const containerRect = container.getBoundingClientRect()
+      const cardRect = cardEl.getBoundingClientRect()
+      // The header scrolls with the steps. Don't jump it off screen when the active
+      // card is already visible.
+      if (cardRect.top >= containerRect.top && cardRect.bottom <= containerRect.bottom) return
+      const offset = cardRect.top - containerRect.top + container.scrollTop
 
-    if (typeof container.scrollTo === 'function') {
-      container.scrollTo({ top: Math.max(0, offset - 16), behavior: 'smooth' })
-    } else {
-      container.scrollTop = Math.max(0, offset - 16)
-    }
-  }, [])
+      if (typeof container.scrollTo === 'function') {
+        container.scrollTo({ top: Math.max(0, offset - 16), behavior: 'smooth' })
+      } else {
+        container.scrollTop = Math.max(0, offset - 16)
+      }
+    },
+    [disableAutoScroll]
+  )
 
   useEffect(() => {
     registerScrollToCard(scrollToCard)

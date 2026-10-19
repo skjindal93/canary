@@ -6,7 +6,9 @@ import { Layout } from '@components/layout'
 import { Text } from '@components/text'
 import { cn } from '@utils/cn'
 
-import { FlowEngineProvider, useEngineContext, type FlowConfig } from '../flow-stepper/engine'
+import { FlowEngineProvider, useEngineContext } from '../flow-stepper/engine'
+import { resolveShowRootHeader } from '../flow-stepper/resolve-show-root-header'
+import { useFlowStepperRailModel } from '../flow-stepper/use-flow-stepper-rail-model'
 import { SinglePaneStepperV2LayoutProvider } from './single-pane-stepper-v2-layout-context'
 import { SinglePaneStepperV2Timeline } from './single-pane-stepper-v2-timeline'
 import { SinglePaneStepperV2RootProps } from './single-pane-stepper-v2-types'
@@ -14,16 +16,6 @@ import { SinglePaneStepperV2RootProps } from './single-pane-stepper-v2-types'
 const DEFAULT_REACTIVATION_PROMPT = {
   title: 'Go back?',
   description: 'Going back to this step will discard your progress on subsequent steps. Are you sure?'
-}
-
-function countFlowSteps(steps: FlowConfig['steps'], initialStep: string) {
-  const seen = new Set<string>()
-  let current: string | undefined = initialStep
-  while (current && steps[current] && !seen.has(current)) {
-    seen.add(current)
-    current = steps[current].next
-  }
-  return Math.max(seen.size, Object.keys(steps).length)
 }
 
 function SinglePaneStepperV2Content({
@@ -42,13 +34,15 @@ function SinglePaneStepperV2Content({
   showInactiveSteps = true,
   className,
   style
-}: Omit<SinglePaneStepperV2RootProps, 'flow' | 'onComplete'>) {
-  const { drawerState, closeDrawer, pendingReactivation, confirmReactivation, cancelReactivation, flow } =
-    useEngineContext()
+}: Omit<
+  SinglePaneStepperV2RootProps,
+  'flow' | 'onComplete' | 'onReactivate' | 'initialEngineState' | 'disableAutoScroll'
+>) {
+  const { drawerState, closeDrawer, pendingReactivation, confirmReactivation, cancelReactivation } = useEngineContext()
 
   const prompt = reactivationPrompt || DEFAULT_REACTIVATION_PROMPT
-  const showHeader = (showRootHeader ?? !hideHeader) !== false && !!(icon || title || onClose)
-  const totalSteps = countFlowSteps(flow.steps, flow.initialStep)
+  const showHeader = resolveShowRootHeader(showRootHeader, hideHeader) && !!(icon || title || onClose)
+  const { totalOverride: totalSteps } = useFlowStepperRailModel()
 
   const activeDrawer = useMemo(() => {
     if (!drawerState || !drawers) return null
@@ -130,9 +124,22 @@ function SinglePaneStepperV2Content({
   )
 }
 
-export function SinglePaneStepperV2Root({ flow, onComplete, ...props }: SinglePaneStepperV2RootProps) {
+export function SinglePaneStepperV2Root({
+  flow,
+  onComplete,
+  onReactivate,
+  disableAutoScroll,
+  initialEngineState,
+  ...props
+}: SinglePaneStepperV2RootProps) {
   return (
-    <FlowEngineProvider flow={flow} onComplete={onComplete}>
+    <FlowEngineProvider
+      flow={flow}
+      onComplete={onComplete}
+      onReactivate={onReactivate}
+      disableAutoScroll={disableAutoScroll}
+      initialEngineState={initialEngineState}
+    >
       <SinglePaneStepperV2Content {...props} />
     </FlowEngineProvider>
   )

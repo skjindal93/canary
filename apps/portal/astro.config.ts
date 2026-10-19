@@ -404,6 +404,10 @@ export default defineConfig({
             },
             "growth-patterns/single-pane-stepper",
             {
+              slug: "growth-patterns/single-pane-stepper-v2",
+              label: "Single Pane Stepper v2",
+            },
+            {
               slug: "growth-patterns/dual-pane-stepper",
               label: "Dual Pane Stepper",
               attrs: {
