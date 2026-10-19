@@ -18,7 +18,7 @@ function savedValue(value: unknown, fallback: string) {
 }
 
 function GoalCard() {
-  const { state, complete } = useFlowCard<{ goal?: string }>();
+  const { state, complete } = useFlowCard<{ goal?: string; answer?: string }>();
   const [value, setValue] = useState(() =>
     savedValue(
       state.goal,
@@ -50,8 +50,13 @@ function GoalCard() {
 }
 
 function IdentityCard() {
-  const { state, complete } = useFlowCard<{ identity?: string }>();
-  const [value, setValue] = useState(() => savedValue(state.identity, "user-id"));
+  const { state, complete } = useFlowCard<{
+    identity?: string;
+    answer?: string;
+  }>();
+  const [value, setValue] = useState(() =>
+    savedValue(state.identity, "user-id"),
+  );
   const labels: Record<string, string> = {
     anonymous: "Anonymous visitors",
     "user-id": "Logged-in users by ID",
@@ -82,8 +87,13 @@ function IdentityCard() {
 }
 
 function AudienceCard() {
-  const { state, complete } = useFlowCard<{ audience?: string }>();
-  const [value, setValue] = useState(() => savedValue(state.audience, "subset"));
+  const { state, complete } = useFlowCard<{
+    audience?: string;
+    answer?: string;
+  }>();
+  const [value, setValue] = useState(() =>
+    savedValue(state.audience, "subset"),
+  );
   const labels: Record<string, string> = {
     everyone: "Everyone",
     subset: "A subset of users",
@@ -112,7 +122,10 @@ function AudienceCard() {
 }
 
 function NameCard() {
-  const { state, complete } = useFlowCard<{ flagName?: string }>();
+  const { state, complete } = useFlowCard<{
+    flagName?: string;
+    answer?: string;
+  }>();
   const [value, setValue] = useState(() =>
     savedValue(state.flagName, "signup-button-color"),
   );
@@ -140,7 +153,10 @@ function NameCard() {
 }
 
 function EnvironmentCard() {
-  const { state, complete } = useFlowCard<{ environment?: string }>();
+  const { state, complete } = useFlowCard<{
+    environment?: string;
+    answer?: string;
+  }>();
   const [value, setValue] = useState(() => savedValue(state.environment, "qa"));
   const labels: Record<string, string> = {
     qa: "QA",
@@ -172,8 +188,13 @@ function EnvironmentCard() {
 }
 
 function RolloutCard() {
-  const { state, complete } = useFlowCard<{ rollout?: string }>();
-  const [value, setValue] = useState(() => savedValue(state.rollout, "percentage"));
+  const { state, complete } = useFlowCard<{
+    rollout?: string;
+    answer?: string;
+  }>();
+  const [value, setValue] = useState(() =>
+    savedValue(state.rollout, "percentage"),
+  );
   const labels: Record<string, string> = {
     off: "Serve the default variation",
     percentage: "Roll out to 10% of users",
@@ -281,13 +302,13 @@ export function FlagOnboardingDemo() {
       <Radio.Root
         value={showInactiveSteps ? "show" : "hide"}
         onValueChange={(next) => setShowInactiveSteps(next === "show")}
-        className="mb-cn-md grid-flow-col auto-cols-max items-center"
+        className="mb-cn-md auto-cols-max grid-flow-col items-center"
         aria-label="Inactive steps"
       >
         <Radio.Item value="show" label="Show inactive steps" />
         <Radio.Item value="hide" label="Hide inactive steps" />
       </Radio.Root>
-      <div className="h-[720px] overflow-hidden rounded-lg border border-cn-2 bg-cn-2">
+      <div className="border-cn-2 bg-cn-2 h-[720px] overflow-hidden rounded-lg border">
         <div className="not-content h-full">
           <TooltipProvider>
             <SinglePaneStepperV2.Root
