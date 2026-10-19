@@ -123,6 +123,36 @@ describe('SinglePaneStepperV2', () => {
     ).toBeInTheDocument()
   })
 
+  test('does not render the form when a completed step has no answer', async () => {
+    function SilentCard() {
+      const { complete } = useFlowCard()
+      return (
+        <SinglePaneStepperV2.Card title="Name the flag">
+          <button onClick={() => complete({ flagName: 'signup-color' })}>Save</button>
+        </SinglePaneStepperV2.Card>
+      )
+    }
+
+    const flow: FlowConfig = {
+      steps: {
+        name: {
+          title: 'Name the flag',
+          component: SilentCard
+        }
+      },
+      initialStep: 'name'
+    }
+
+    render(<SinglePaneStepperV2.Root flow={flow} />)
+    await userEvent.click(screen.getByText('Save'))
+
+    await waitFor(() => {
+      expect(screen.queryByText('Save')).not.toBeInTheDocument()
+    })
+    expect(screen.getByText('Name the flag')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Edit this answer' })).not.toBeInTheDocument()
+  })
+
   test('does not render accordion collapse controls on completed steps', async () => {
     const { container } = render(<SinglePaneStepperV2.Root flow={testFlow} />)
     await userEvent.click(screen.getByText('Continue'))

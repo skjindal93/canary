@@ -79,13 +79,15 @@ export function SinglePaneStepperV2Card({
         ) : null}
       </div>
 
-      {status === 'completed' && resolvedAnswer ? (
-        <SinglePaneStepperV2Answer
-          stepId={stepId}
-          answer={resolvedAnswer}
-          completedAt={entry?.completedAt}
-          showRestart={showRestart}
-        />
+      {status === 'completed' ? (
+        resolvedAnswer ? (
+          <SinglePaneStepperV2Answer
+            stepId={stepId}
+            answer={resolvedAnswer}
+            completedAt={entry?.completedAt}
+            showRestart={showRestart}
+          />
+        ) : null
       ) : status === 'skipped' ? (
         <Text as="p" variant="body-normal" color="foreground-3">
           Skipped
