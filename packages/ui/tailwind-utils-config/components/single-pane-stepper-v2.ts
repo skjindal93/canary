@@ -41,7 +41,10 @@ export default {
     flexDirection: 'column',
     flex: '1',
     minHeight: '0',
-    padding: 'var(--cn-spacing-4) var(--cn-spacing-10) var(--cn-spacing-4)'
+    // Left padding is shorter by the stack's inset so the active indicator stays
+    // put while its glow has room inside the scrollport.
+    padding:
+      'var(--cn-spacing-4) var(--cn-spacing-10) var(--cn-spacing-4) calc(var(--cn-spacing-10) - var(--cn-spacing-6))'
   },
 
   '.cn-single-pane-stepper-v2-content-header': {
@@ -54,6 +57,9 @@ export default {
     overflow: 'auto',
     flex: '1',
     minHeight: '0',
+    // The active circle's brand glow is a 20px blur. overflow clips it at the
+    // scrollport edge, so inset the rail by more than that blur.
+    paddingLeft: 'var(--cn-spacing-6)',
     scrollbarWidth: 'none',
 
     '&::-webkit-scrollbar': {
@@ -125,6 +131,20 @@ export default {
       gridRow: '1',
       margin: '0',
       minWidth: '0'
+    },
+
+    // Same mute as `.cn-stepper .cn-stepper-step-item:has(.cn-stepper-step-completed)`.
+    // v2 is not inside `.cn-stepper`, so that rule never reaches these cards.
+    '&:has(.cn-stepper-step-completed)': {
+      opacity: '0.6',
+
+      '&:hover': {
+        opacity: '1'
+      },
+
+      '&:has(:focus-visible)': {
+        opacity: '1'
+      }
     }
   },
 
