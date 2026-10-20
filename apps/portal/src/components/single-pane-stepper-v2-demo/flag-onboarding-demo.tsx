@@ -9,6 +9,7 @@ import {
   Textarea,
   TextInput,
   TooltipProvider,
+  useEngineContext,
   useFlowCard,
 } from "@harnessio/ui/components";
 import type { FlowConfig } from "@harnessio/ui/components";
@@ -17,14 +18,25 @@ function savedValue(value: unknown, fallback: string) {
   return typeof value === "string" && value.length > 0 ? value : fallback;
 }
 
+// Go-back rewinds engine state to the previous step and remounts this card.
+// The saved answer lives on this step's history snapshot, so read that first.
+function useSavedField(stepId: string, key: string, fallback: string) {
+  const { state } = useFlowCard<Record<string, unknown>>();
+  const { cardHistory } = useEngineContext();
+  const snapshot = cardHistory.find(
+    (entry) => entry.stepId === stepId,
+  )?.stateSnapshot;
+  return savedValue(snapshot?.[key] ?? state[key], fallback);
+}
+
 function GoalCard() {
-  const { state, complete } = useFlowCard<{ goal?: string; answer?: string }>();
-  const [value, setValue] = useState(() =>
-    savedValue(
-      state.goal,
-      "Switch a Sign Up button from blue to green, or change its copy, for a subset of users.",
-    ),
+  const { complete } = useFlowCard<{ goal?: string; answer?: string }>();
+  const saved = useSavedField(
+    "goal",
+    "goal",
+    "Switch a Sign Up button from blue to green, or change its copy, for a subset of users.",
   );
+  const [value, setValue] = useState(saved);
 
   return (
     <SinglePaneStepperV2.Card
@@ -50,13 +62,12 @@ function GoalCard() {
 }
 
 function IdentityCard() {
-  const { state, complete } = useFlowCard<{
+  const { complete } = useFlowCard<{
     identity?: string;
     answer?: string;
   }>();
-  const [value, setValue] = useState(() =>
-    savedValue(state.identity, "user-id"),
-  );
+  const saved = useSavedField("identity", "identity", "user-id");
+  const [value, setValue] = useState(saved);
   const labels: Record<string, string> = {
     anonymous: "Anonymous visitors",
     "user-id": "Logged-in users by ID",
@@ -87,13 +98,12 @@ function IdentityCard() {
 }
 
 function AudienceCard() {
-  const { state, complete } = useFlowCard<{
+  const { complete } = useFlowCard<{
     audience?: string;
     answer?: string;
   }>();
-  const [value, setValue] = useState(() =>
-    savedValue(state.audience, "subset"),
-  );
+  const saved = useSavedField("audience", "audience", "subset");
+  const [value, setValue] = useState(saved);
   const labels: Record<string, string> = {
     everyone: "Everyone",
     subset: "A subset of users",
@@ -122,13 +132,12 @@ function AudienceCard() {
 }
 
 function NameCard() {
-  const { state, complete } = useFlowCard<{
+  const { complete } = useFlowCard<{
     flagName?: string;
     answer?: string;
   }>();
-  const [value, setValue] = useState(() =>
-    savedValue(state.flagName, "signup-button-color"),
-  );
+  const saved = useSavedField("flagName", "flagName", "signup-button-color");
+  const [value, setValue] = useState(saved);
 
   return (
     <SinglePaneStepperV2.Card
@@ -153,11 +162,12 @@ function NameCard() {
 }
 
 function EnvironmentCard() {
-  const { state, complete } = useFlowCard<{
+  const { complete } = useFlowCard<{
     environment?: string;
     answer?: string;
   }>();
-  const [value, setValue] = useState(() => savedValue(state.environment, "qa"));
+  const saved = useSavedField("environment", "environment", "qa");
+  const [value, setValue] = useState(saved);
   const labels: Record<string, string> = {
     qa: "QA",
     staging: "Staging",
@@ -188,13 +198,12 @@ function EnvironmentCard() {
 }
 
 function RolloutCard() {
-  const { state, complete } = useFlowCard<{
+  const { complete } = useFlowCard<{
     rollout?: string;
     answer?: string;
   }>();
-  const [value, setValue] = useState(() =>
-    savedValue(state.rollout, "percentage"),
-  );
+  const saved = useSavedField("rollout", "rollout", "percentage");
+  const [value, setValue] = useState(saved);
   const labels: Record<string, string> = {
     off: "Serve the default variation",
     percentage: "Roll out to 10% of users",

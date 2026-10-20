@@ -112,7 +112,7 @@ export function SinglePaneStepperV2Timeline({ children }: { children?: ReactNode
 
           return (
             <li
-              key={entry.stepId}
+              key={`${entry.stepId}-${entry.mountGeneration ?? 0}`}
               data-card-id={entry.stepId}
               className="cn-stepper-step-item cn-single-pane-stepper-v2-step-item"
             >

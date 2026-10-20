@@ -452,7 +452,10 @@ export function FlowEngineProvider({
               // Bump so card stacks remount this card's local state (collapse still uses forceMount).
               mountGeneration: (entry.mountGeneration ?? 0) + 1,
               // Idle header prompt while this step is active again. Cards set a fresh summary on complete.
-              summary: undefined
+              summary: undefined,
+              // Chat message fields follow the same go-back reset as summary.
+              answer: undefined,
+              completedAt: undefined
             }
           : entry
       )

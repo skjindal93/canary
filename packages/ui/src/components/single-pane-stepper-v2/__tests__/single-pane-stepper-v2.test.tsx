@@ -1,10 +1,10 @@
-import React from 'react'
+import React, { useState } from 'react'
 
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, test, vi } from 'vitest'
 
-import { useFlowCard, type FlowConfig } from '../../flow-stepper/engine'
+import { useEngineContext, useFlowCard, type FlowConfig } from '../../flow-stepper/engine'
 import { SinglePaneStepperV2 } from '../index'
 
 vi.mock('@components/icon-v2', () => ({
@@ -176,6 +176,64 @@ describe('SinglePaneStepperV2', () => {
         )
       ).toBeInTheDocument()
     })
+  })
+
+  test('remounts an edited step from its saved snapshot and clears the chat answer', async () => {
+    function EditableCard() {
+      const { complete } = useFlowCard()
+      const { cardHistory } = useEngineContext()
+      const entry = cardHistory.find(item => item.stepId === 'goal')
+      const snapshotGoal = entry?.stateSnapshot.goal
+      const saved = typeof snapshotGoal === 'string' ? snapshotGoal : 'default'
+      const [value] = useState(saved)
+
+      return (
+        <>
+          <span data-testid="goal-answer">{entry?.answer ?? ''}</span>
+          <span data-testid="goal-completed-at">{entry?.completedAt ?? ''}</span>
+          <SinglePaneStepperV2.Card title="Goal">
+            <span data-testid="goal-value">{value}</span>
+            <button onClick={() => complete({ goal: 'edited answer', answer: 'edited answer' })}>Continue</button>
+          </SinglePaneStepperV2.Card>
+        </>
+      )
+    }
+
+    function NextCard() {
+      return (
+        <SinglePaneStepperV2.Card title="Next">
+          <span>Next form</span>
+        </SinglePaneStepperV2.Card>
+      )
+    }
+
+    const flow: FlowConfig = {
+      steps: {
+        goal: { title: 'Goal', component: EditableCard, next: 'next' },
+        next: { title: 'Next', component: NextCard }
+      },
+      initialStep: 'goal'
+    }
+
+    render(<SinglePaneStepperV2.Root flow={flow} />)
+    expect(screen.getByTestId('goal-value')).toHaveTextContent('default')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Continue' }))
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Edit this answer' })).toBeInTheDocument()
+    })
+    expect(screen.getByTestId('goal-answer')).toHaveTextContent('edited answer')
+    expect(screen.getByTestId('goal-completed-at').textContent).not.toBe('')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Edit this answer' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Confirm' }))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('goal-value')).toHaveTextContent('edited answer')
+    })
+    expect(screen.getByTestId('goal-answer')).toHaveTextContent('')
+    expect(screen.getByTestId('goal-completed-at')).toHaveTextContent('')
+    expect(screen.queryByRole('button', { name: 'Edit this answer' })).not.toBeInTheDocument()
   })
 
   test('can go back from a completed chat message and restore the form', async () => {
