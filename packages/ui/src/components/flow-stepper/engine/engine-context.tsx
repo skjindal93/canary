@@ -290,6 +290,12 @@ export function FlowEngineProvider({
       const currentState = stateRef.current
       const newState = statePatch ? { ...currentState, ...statePatch } : currentState
       const answer = typeof statePatch?.answer === 'string' ? statePatch.answer : undefined
+      // Shared state keeps the latest `answer`, so a step that omits one would
+      // otherwise snapshot the previous step's message and render it as its own.
+      const stateSnapshot = { ...newState }
+      if (!(typeof answer === 'string' && answer.length > 0)) {
+        delete stateSnapshot.answer
+      }
       if (statePatch) setState(newState)
 
       setCardHistory(prev => {
@@ -298,7 +304,7 @@ export function FlowEngineProvider({
             ? {
                 ...entry,
                 status: 'completed' as const,
-                stateSnapshot: newState,
+                stateSnapshot,
                 ...(answer ? { answer } : {}),
                 completedAt: Date.now()
               }

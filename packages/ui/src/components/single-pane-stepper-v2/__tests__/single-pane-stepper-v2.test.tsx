@@ -153,6 +153,48 @@ describe('SinglePaneStepperV2', () => {
     expect(screen.queryByRole('button', { name: 'Edit this answer' })).not.toBeInTheDocument()
   })
 
+  test('does not repeat the previous answer when a later step completes without one', async () => {
+    function FirstCard() {
+      const { complete } = useFlowCard()
+      return (
+        <SinglePaneStepperV2.Card title="First">
+          <button onClick={() => complete({ answer: 'from the first step' })}>Next</button>
+        </SinglePaneStepperV2.Card>
+      )
+    }
+
+    function SilentNextCard() {
+      const { complete } = useFlowCard()
+      return (
+        <SinglePaneStepperV2.Card title="Second">
+          <button onClick={() => complete({ flagName: 'signup-color' })}>Save</button>
+        </SinglePaneStepperV2.Card>
+      )
+    }
+
+    render(
+      <SinglePaneStepperV2.Root
+        flow={{
+          steps: {
+            first: { title: 'First', component: FirstCard, next: 'second' },
+            second: { title: 'Second', component: SilentNextCard }
+          },
+          initialStep: 'first'
+        }}
+      />
+    )
+
+    await userEvent.click(screen.getByRole('button', { name: 'Next' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Save' }))
+
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument()
+    })
+    expect(screen.getAllByText('from the first step')).toHaveLength(1)
+    expect(screen.getAllByRole('button', { name: 'Edit this answer' })).toHaveLength(1)
+    expect(screen.getByText('Second')).toBeInTheDocument()
+  })
+
   test('does not render accordion collapse controls on completed steps', async () => {
     const { container } = render(<SinglePaneStepperV2.Root flow={testFlow} />)
     await userEvent.click(screen.getByText('Continue'))

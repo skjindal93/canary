@@ -121,6 +121,8 @@ An empty string is not a chat message. It falls through to the next source, and 
 
 `answer` is also merged into the shared engine `state`, and every later `complete()` overwrites `state.answer`. Treat `answer` as reserved for this chat message. Keep domain values on their own keys (`goal`, `audience`).
 
+`complete()` only leaves `answer` on this step's snapshot when this call passed a non-empty string. A completed step with no answer of its own stays silent instead of repeating the previous message. `stateSnapshot.answer` is still the third display source for a resumed history entry that stored the message there.
+
 When a step is **active** or **errored**, the card renders `children` (the form). When it is **completed**, `children` are not shown. A resolved answer renders as the chat message; if there is no answer, the card renders the question header and nothing else. There is no accordion expand/collapse for the completed question.
 
 A **skipped** step shows “Skipped” and, when a later step is still in the thread, the same go-back control as a completed message. The timeline indicator can also go back.
