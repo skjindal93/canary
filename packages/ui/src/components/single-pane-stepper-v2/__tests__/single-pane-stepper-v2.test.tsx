@@ -4,7 +4,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, test, vi } from 'vitest'
 
-import { useEngineContext, useFlowCard, type FlowConfig } from '../../flow-stepper/engine'
+import { useEngineContext, useFlowCard, type DrawerComponentProps, type FlowConfig } from '../../flow-stepper/engine'
 import { SinglePaneStepperV2 } from '../index'
 
 vi.mock('@components/icon-v2', () => ({
@@ -447,6 +447,7 @@ describe('SinglePaneStepperV2', () => {
 
     expect(screen.getByText('Still editable')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Edit this answer' })).not.toBeInTheDocument()
+    expect(screen.getByTestId('icon-xmark-circle')).toBeInTheDocument()
   })
 
   test('shows a go-back control on a skipped step that is not the end of the thread', async () => {
@@ -516,6 +517,202 @@ describe('SinglePaneStepperV2', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Finish again' }))
     expect(onComplete).toHaveBeenCalledTimes(1)
     expect(screen.getByText('created')).toBeInTheDocument()
+  })
+
+  test('opens go-back from the timeline indicator and cancels it', async () => {
+    render(<SinglePaneStepperV2.Root flow={testFlow} />)
+    await userEvent.click(screen.getByText('Continue'))
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Go back to What do you want your first flag to do?' })
+    )
+
+    expect(screen.getByText('Go back?')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(screen.queryByText('Go back?')).not.toBeInTheDocument()
+    expect(screen.getByText('Who should see the new experience?')).toBeInTheDocument()
+  })
+
+  test('uses a custom go-back prompt and renders the content header', async () => {
+    render(
+      <SinglePaneStepperV2.Root
+        flow={testFlow}
+        icon={<span>Flag</span>}
+        onClose={() => undefined}
+        contentTitle="Create your first flag"
+        contentSubtitle="A short conversation"
+        stepperTitle="Steps"
+        showStepperHeader
+        reactivationPrompt={{ title: 'Leave this answer?', description: 'Later answers will be dropped.' }}
+        className="chat-root"
+        style={{ minHeight: 12 }}
+      />
+    )
+
+    expect(screen.getByText('Flag')).toBeInTheDocument()
+    expect(screen.getByText('Create your first flag')).toBeInTheDocument()
+    expect(screen.getByText('A short conversation')).toBeInTheDocument()
+    expect(screen.getByText('Steps')).toBeInTheDocument()
+    expect(document.querySelector('.chat-root')).toHaveStyle({ minHeight: '12px' })
+
+    await userEvent.click(screen.getByText('Continue'))
+    await userEvent.click(await screen.findByRole('button', { name: 'Edit this answer' }))
+    expect(screen.getByText('Leave this answer?')).toBeInTheDocument()
+    expect(screen.getByText('Later answers will be dropped.')).toBeInTheDocument()
+  })
+
+  test('hides the root header and mounts a registered drawer', async () => {
+    function DrawerCard() {
+      const { openDrawer } = useFlowCard()
+      return (
+        <SinglePaneStepperV2.Card title="Connect">
+          <button onClick={() => openDrawer('missing')}>Missing drawer</button>
+          <button onClick={() => openDrawer('edit', { id: '1' })}>Open drawer</button>
+        </SinglePaneStepperV2.Card>
+      )
+    }
+    function EditDrawer({ onClose, props }: DrawerComponentProps) {
+      return (
+        <div>
+          <span>Drawer {String(props?.id)}</span>
+          <button onClick={() => onClose({ success: true })}>Close drawer</button>
+        </div>
+      )
+    }
+
+    render(
+      <SinglePaneStepperV2.Root
+        flow={{ steps: { connect: { title: 'Connect', component: DrawerCard } }, initialStep: 'connect' }}
+        title="Hidden title"
+        hideHeader
+        drawers={{ edit: EditDrawer }}
+      />
+    )
+
+    expect(screen.queryByText('Hidden title')).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Missing drawer' }))
+    expect(screen.queryByText('Drawer 1')).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Open drawer' }))
+    expect(await screen.findByText('Drawer 1')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Close drawer' }))
+    await waitFor(() => {
+      expect(screen.queryByText('Drawer 1')).not.toBeInTheDocument()
+    })
+  })
+
+  test('labels a completed step by its id when the flow title is empty', async () => {
+    function GoalCard() {
+      const { complete } = useFlowCard()
+      return (
+        <SinglePaneStepperV2.Card title="Question">
+          <button onClick={() => complete({ answer: 'saved' }, 'next')}>Continue</button>
+        </SinglePaneStepperV2.Card>
+      )
+    }
+    function NextCard() {
+      return (
+        <SinglePaneStepperV2.Card title="Next">
+          <span>Next form</span>
+        </SinglePaneStepperV2.Card>
+      )
+    }
+
+    render(
+      <SinglePaneStepperV2.Root
+        flow={{
+          steps: {
+            goal: { title: '', component: GoalCard, next: 'next' },
+            next: { title: 'Next', component: NextCard }
+          },
+          initialStep: 'goal'
+        }}
+      />
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Continue' }))
+    expect(await screen.findByRole('button', { name: 'Go back to goal' })).toBeInTheDocument()
+  })
+
+  test('does not scroll when auto-scroll is disabled', async () => {
+    const { container } = render(<SinglePaneStepperV2.Root flow={testFlow} disableAutoScroll />)
+    const stack = container.querySelector('.cn-single-pane-stepper-v2-card-stack') as HTMLElement
+    Object.defineProperty(stack, 'clientHeight', { configurable: true, value: 200 })
+
+    await new Promise(resolve => setTimeout(resolve, 80))
+    expect(stack.style.paddingTop).toBe('')
+  })
+
+  test('centers the active step in the stack and a scrolling ancestor', async () => {
+    const { container } = render(<SinglePaneStepperV2.Root flow={testFlow} />)
+    const stack = container.querySelector('.cn-single-pane-stepper-v2-card-stack') as HTMLElement
+    const body = container.querySelector('.cn-single-pane-stepper-v2-body') as HTMLElement
+    const card = container.querySelector('[data-card-id="goal"]') as HTMLElement
+    const behaviors: Array<ScrollBehavior | undefined> = []
+
+    const install = (el: HTMLElement, height: number, scrollHeight: number, top: number, useScrollTo: boolean) => {
+      let scrollTop = 0
+      Object.defineProperty(el, 'clientHeight', { configurable: true, get: () => height })
+      Object.defineProperty(el, 'scrollHeight', { configurable: true, get: () => scrollHeight })
+      Object.defineProperty(el, 'scrollTop', {
+        configurable: true,
+        get: () => scrollTop,
+        set: value => {
+          scrollTop = value
+        }
+      })
+      if (useScrollTo) {
+        el.scrollTo = (options?: ScrollToOptions) => {
+          behaviors.push(options?.behavior)
+          if (typeof options?.top === 'number') scrollTop = options.top
+        }
+      } else {
+        Reflect.deleteProperty(el, 'scrollTo')
+      }
+      el.getBoundingClientRect = () =>
+        ({
+          top,
+          left: 0,
+          right: 100,
+          bottom: top + height,
+          width: 100,
+          height,
+          x: 0,
+          y: top,
+          toJSON: () => ({})
+        }) as DOMRect
+    }
+
+    install(stack, 200, 800, 0, false)
+    install(body, 40, 900, 0, true)
+    card.getBoundingClientRect = () =>
+      ({
+        top: 400,
+        left: 0,
+        right: 100,
+        bottom: 500,
+        width: 100,
+        height: 100,
+        x: 0,
+        y: 400,
+        toJSON: () => ({})
+      }) as DOMRect
+
+    const originalGetComputedStyle = window.getComputedStyle.bind(window)
+    const getComputedStyleSpy = vi.spyOn(window, 'getComputedStyle').mockImplementation(node => {
+      if (node === body) return { overflowY: 'auto' } as CSSStyleDeclaration
+      return originalGetComputedStyle(node)
+    })
+
+    await waitFor(() => {
+      expect(stack.style.paddingTop).toBe('100px')
+    })
+    expect(behaviors).toContain('auto')
+    expect(body.scrollTop).toBeGreaterThan(0)
+
+    await userEvent.click(screen.getByText('Continue'))
+    await waitFor(() => {
+      expect(behaviors).toContain('smooth')
+    })
+    getComputedStyleSpy.mockRestore()
   })
 
   test('styles the go-back dialog body like v1', async () => {
