@@ -7,6 +7,49 @@ import { cn } from '@utils/cn'
 import { CardContextProvider, deriveFullPredictedPath, useEngineContext, type CardStatus } from '../flow-stepper/engine'
 import { useSinglePaneStepperV2Layout } from './single-pane-stepper-v2-layout-context'
 
+function scrollElementTo(node: HTMLElement, top: number, behavior: ScrollBehavior) {
+  if (typeof node.scrollTo === 'function') {
+    node.scrollTo({ top, behavior })
+  } else {
+    node.scrollTop = top
+  }
+}
+
+// The stack is not the only scroller. Pad it so the first and last steps can
+// sit in the middle, then center the card in every ancestor pane that actually
+// scrolls. `shift` accounts for scrolls that have not painted yet.
+function centerStepInNestedScrollports(container: HTMLElement, cardEl: HTMLElement, behavior: ScrollBehavior) {
+  const pad = Math.round(container.clientHeight / 2)
+  container.style.paddingTop = `${pad}px`
+  container.style.paddingBottom = `${pad}px`
+
+  const containerRect = container.getBoundingClientRect()
+  const cardRect = cardEl.getBoundingClientRect()
+  const cardCenter = cardRect.top + cardRect.height / 2
+  const innerDelta = cardCenter - (containerRect.top + containerRect.height / 2)
+  const maxScroll = Math.max(0, container.scrollHeight - container.clientHeight)
+  const next = Math.min(maxScroll, Math.max(0, container.scrollTop + innerDelta))
+  let shift = next - container.scrollTop
+
+  scrollElementTo(container, next, behavior)
+
+  let node = container.parentElement
+  while (node) {
+    const overflowY = getComputedStyle(node).overflowY
+    const canScroll = (overflowY === 'auto' || overflowY === 'scroll') && node.scrollHeight > node.clientHeight + 1
+    if (canScroll) {
+      const rect = node.getBoundingClientRect()
+      const predictedCenter = cardCenter - shift
+      const delta = predictedCenter - (rect.top + rect.height / 2)
+      const max = Math.max(0, node.scrollHeight - node.clientHeight)
+      const target = Math.min(max, Math.max(0, node.scrollTop + delta))
+      shift += target - node.scrollTop
+      scrollElementTo(node, target, behavior)
+    }
+    node = node.parentElement
+  }
+}
+
 function statusToStepState(status: CardStatus) {
   if (status === 'completed') return 'completed'
   if (status === 'error') return 'error'
@@ -36,52 +79,9 @@ export function SinglePaneStepperV2Timeline({ children }: { children?: ReactNode
       const cardEl = container.querySelector(`[data-card-id="${stepId}"]`) as HTMLElement | null
       if (!cardEl) return
 
-      // Room above and below so the first and last steps can sit in the middle
-      // instead of sticking to the top or bottom edge.
-      const pad = Math.round(container.clientHeight / 2)
-      container.style.paddingTop = `${pad}px`
-      container.style.paddingBottom = `${pad}px`
-
       const behavior: ScrollBehavior = hasCenteredRef.current ? 'smooth' : 'auto'
       hasCenteredRef.current = true
-
-      const containerRect = container.getBoundingClientRect()
-      const cardRect = cardEl.getBoundingClientRect()
-      const cardCenter = cardRect.top + cardRect.height / 2
-      const innerDelta = cardCenter - (containerRect.top + containerRect.height / 2)
-      const maxScroll = Math.max(0, container.scrollHeight - container.clientHeight)
-      const next = Math.min(maxScroll, Math.max(0, container.scrollTop + innerDelta))
-      const applied = next - container.scrollTop
-
-      if (typeof container.scrollTo === 'function') {
-        container.scrollTo({ top: next, behavior })
-      } else {
-        container.scrollTop = next
-      }
-
-      // The page often scrolls in a nested pane, not the document. Walk those
-      // panes and center the step in each one so it is on screen, not cut off
-      // at the bottom. `applied` is the shift the stack scroll is about to make.
-      let shift = applied
-      let node = container.parentElement
-      while (node) {
-        const overflowY = getComputedStyle(node).overflowY
-        const canScroll = (overflowY === 'auto' || overflowY === 'scroll') && node.scrollHeight > node.clientHeight + 1
-        if (canScroll) {
-          const rect = node.getBoundingClientRect()
-          const predictedCenter = cardCenter - shift
-          const delta = predictedCenter - (rect.top + rect.height / 2)
-          const max = Math.max(0, node.scrollHeight - node.clientHeight)
-          const target = Math.min(max, Math.max(0, node.scrollTop + delta))
-          shift += target - node.scrollTop
-          if (typeof node.scrollTo === 'function') {
-            node.scrollTo({ top: target, behavior })
-          } else {
-            node.scrollTop = target
-          }
-        }
-        node = node.parentElement
-      }
+      centerStepInNestedScrollports(container, cardEl, behavior)
     },
     [disableAutoScroll]
   )

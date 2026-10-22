@@ -323,4 +323,208 @@ describe('SinglePaneStepperV2', () => {
     await userEvent.click(screen.getByLabelText('Close'))
     expect(onClose).toHaveBeenCalled()
   })
+
+  test('hides the step badge when showStepBadge is false', () => {
+    render(<SinglePaneStepperV2.Root flow={testFlow} showStepBadge={false} />)
+    expect(screen.queryByText('Step 1/3')).not.toBeInTheDocument()
+  })
+
+  test('resolves chat text from the card prop, then history, then the snapshot', () => {
+    function Question({ answer }: { answer?: string }) {
+      return (
+        <SinglePaneStepperV2.Card title="Question" answer={answer}>
+          <span>form</span>
+        </SinglePaneStepperV2.Card>
+      )
+    }
+
+    function flowFor(component: FlowConfig['steps'][string]['component']): FlowConfig {
+      return { steps: { goal: { title: 'Question', component } }, initialStep: 'goal' }
+    }
+
+    const withHistory = {
+      state: {},
+      cardHistory: [
+        {
+          stepId: 'goal',
+          status: 'completed' as const,
+          stateSnapshot: { answer: 'from snapshot' },
+          answer: 'from history'
+        }
+      ]
+    }
+
+    const { unmount } = render(
+      <SinglePaneStepperV2.Root
+        flow={flowFor(function PropCard() {
+          return <Question answer="from prop" />
+        })}
+        initialEngineState={withHistory}
+      />
+    )
+    expect(screen.getByText('from prop')).toBeInTheDocument()
+    expect(screen.queryByText('from history')).not.toBeInTheDocument()
+    unmount()
+
+    const { unmount: unmountEmptyProp } = render(
+      <SinglePaneStepperV2.Root
+        flow={flowFor(function EmptyPropCard() {
+          return <Question answer="" />
+        })}
+        initialEngineState={withHistory}
+      />
+    )
+    expect(screen.getByText('from history')).toBeInTheDocument()
+    unmountEmptyProp()
+
+    const { unmount: unmountHistory } = render(
+      <SinglePaneStepperV2.Root
+        flow={flowFor(function HistoryCard() {
+          return <Question />
+        })}
+        initialEngineState={withHistory}
+      />
+    )
+    expect(screen.getByText('from history')).toBeInTheDocument()
+    expect(screen.queryByText('from snapshot')).not.toBeInTheDocument()
+    unmountHistory()
+
+    render(
+      <SinglePaneStepperV2.Root
+        flow={flowFor(function SnapshotCard() {
+          return <Question />
+        })}
+        initialEngineState={{
+          state: {},
+          cardHistory: [{ stepId: 'goal', status: 'completed', stateSnapshot: { answer: 'from snapshot' } }]
+        }}
+      />
+    )
+    expect(screen.getByText('from snapshot')).toBeInTheDocument()
+  })
+
+  test('does not render a chat message for an empty answer string', async () => {
+    function EmptyCard() {
+      const { complete } = useFlowCard()
+      return (
+        <SinglePaneStepperV2.Card title="Question">
+          <span>Still a form</span>
+          <button onClick={() => complete({ answer: '' })}>Save empty</button>
+        </SinglePaneStepperV2.Card>
+      )
+    }
+
+    render(
+      <SinglePaneStepperV2.Root
+        flow={{ steps: { goal: { title: 'Question', component: EmptyCard } }, initialStep: 'goal' }}
+      />
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Save empty' }))
+
+    await waitFor(() => {
+      expect(screen.queryByText('Still a form')).not.toBeInTheDocument()
+    })
+    expect(screen.queryByRole('button', { name: 'Edit this answer' })).not.toBeInTheDocument()
+  })
+
+  test('keeps the form visible when a step errors', async () => {
+    function ErrorCard() {
+      const { error } = useFlowCard()
+      return (
+        <SinglePaneStepperV2.Card title="Risky">
+          <span>Still editable</span>
+          <button onClick={() => error()}>Fail</button>
+        </SinglePaneStepperV2.Card>
+      )
+    }
+
+    render(
+      <SinglePaneStepperV2.Root
+        flow={{ steps: { goal: { title: 'Risky', component: ErrorCard } }, initialStep: 'goal' }}
+      />
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Fail' }))
+
+    expect(screen.getByText('Still editable')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Edit this answer' })).not.toBeInTheDocument()
+  })
+
+  test('shows a go-back control on a skipped step that is not the end of the thread', async () => {
+    function SkipCard() {
+      const { skip } = useFlowCard()
+      return (
+        <SinglePaneStepperV2.Card title="Optional">
+          <button onClick={() => skip('after')}>Skip step</button>
+        </SinglePaneStepperV2.Card>
+      )
+    }
+    function AfterCard() {
+      return (
+        <SinglePaneStepperV2.Card title="After">
+          <span>After form</span>
+        </SinglePaneStepperV2.Card>
+      )
+    }
+
+    render(
+      <SinglePaneStepperV2.Root
+        flow={{
+          steps: {
+            optional: { title: 'Optional', component: SkipCard, next: 'after' },
+            after: { title: 'After', component: AfterCard }
+          },
+          initialStep: 'optional'
+        }}
+      />
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Skip step' }))
+
+    expect(await screen.findByText('Skipped')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Go back to this step' })).toBeInTheDocument()
+  })
+
+  test('calls onComplete only when complete() re-enters an already terminal step', async () => {
+    const onComplete = vi.fn()
+
+    function LastCard() {
+      const { complete } = useFlowCard()
+      return (
+        <SinglePaneStepperV2.Card title="Last">
+          <button onClick={() => complete({ answer: 'created' })}>Create</button>
+        </SinglePaneStepperV2.Card>
+      )
+    }
+
+    function Again() {
+      const engine = useEngineContext()
+      return <button onClick={() => engine.complete('last')}>Finish again</button>
+    }
+
+    render(
+      <SinglePaneStepperV2.Root
+        flow={{ steps: { last: { title: 'Last', component: LastCard } }, initialStep: 'last' }}
+        onComplete={onComplete}
+      >
+        <Again />
+      </SinglePaneStepperV2.Root>
+    )
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create' }))
+    expect(await screen.findByText('created')).toBeInTheDocument()
+    expect(onComplete).not.toHaveBeenCalled()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Finish again' }))
+    expect(onComplete).toHaveBeenCalledTimes(1)
+    expect(screen.getByText('created')).toBeInTheDocument()
+  })
+
+  test('styles the go-back dialog body like v1', async () => {
+    render(<SinglePaneStepperV2.Root flow={testFlow} />)
+    await userEvent.click(screen.getByText('Continue'))
+    await userEvent.click(await screen.findByRole('button', { name: 'Edit this answer' }))
+
+    expect(
+      screen.getByText('Going back to this step will discard your progress on subsequent steps. Are you sure?')
+    ).toHaveClass('cn-stepper-go-back-body')
+  })
 })

@@ -1,15 +1,11 @@
-import { ReactNode } from 'react'
-
 import { Text } from '@components/text'
 import { cn } from '@utils/cn'
 
-import { useCardStatus, useEngineContext, type CardStatus } from '../flow-stepper/engine'
+import { useCardStatus, useEngineContext } from '../flow-stepper/engine'
+import { FlowStepperRestartButton, shouldShowRestart } from '../flow-stepper/flow-stepper-card'
 import { SinglePaneStepperV2Answer } from './single-pane-stepper-v2-answer'
 import { useSinglePaneStepperV2Layout } from './single-pane-stepper-v2-layout-context'
 import { SinglePaneStepperV2CardProps } from './single-pane-stepper-v2-types'
-
-const INTERACTIVE_STATES: Set<CardStatus> = new Set(['active', 'error'])
-const TERMINAL_STATES: Set<CardStatus> = new Set(['completed', 'skipped'])
 
 function resolveAnswer(
   answerProp: string | undefined,
@@ -36,11 +32,7 @@ export function SinglePaneStepperV2Card({
 
   const entry = cardHistory.find(item => item.stepId === stepId)
   const stepNumber = cardHistory.findIndex(item => item.stepId === stepId) + 1
-  const isTerminal = TERMINAL_STATES.has(status)
-  const isLastCard = cardHistory[cardHistory.length - 1]?.stepId === stepId
-  const isFlowComplete = !cardHistory.some(item => INTERACTIVE_STATES.has(item.status))
-  const isFinished = isTerminal && isLastCard && isFlowComplete
-  const showRestart = isTerminal && !isFinished
+  const showRestart = shouldShowRestart(status, cardHistory, stepId)
   const resolvedAnswer = resolveAnswer(answer, entry?.answer, entry?.stateSnapshot)
 
   return (
@@ -89,11 +81,14 @@ export function SinglePaneStepperV2Card({
           />
         ) : null
       ) : status === 'skipped' ? (
-        <Text as="p" variant="body-normal" color="foreground-3">
-          Skipped
-        </Text>
+        <div className="cn-single-pane-stepper-v2-card-content">
+          <Text as="p" variant="body-normal" color="foreground-3">
+            Skipped
+          </Text>
+          <FlowStepperRestartButton stepId={stepId} status={status} />
+        </div>
       ) : (
-        <div className="cn-single-pane-stepper-v2-card-content">{children as ReactNode}</div>
+        <div className="cn-single-pane-stepper-v2-card-content">{children}</div>
       )}
     </div>
   )

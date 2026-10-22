@@ -117,7 +117,15 @@ You can also pass `answer` on the card. The card resolves display text in this o
 2. `answer` stored on the completed history entry
 3. `stateSnapshot.answer`
 
+An empty string is not a chat message. It falls through to the next source, and `complete({ answer: "" })` does not store one.
+
+`answer` is also merged into the shared engine `state`, and every later `complete()` overwrites `state.answer`. Treat `answer` as reserved for this chat message. Keep domain values on their own keys (`goal`, `audience`).
+
 When a step is **active** or **errored**, the card renders `children` (the form). When it is **completed**, `children` are not shown. A resolved answer renders as the chat message; if there is no answer, the card renders the question header and nothing else. There is no accordion expand/collapse for the completed question.
+
+A **skipped** step shows “Skipped” and, when a later step is still in the thread, the same go-back control as a completed message. The timeline indicator can also go back.
+
+Upcoming steps that have not been visited use the `title` on `FlowConfig`. Visited cards use the `title` prop on `SinglePaneStepperV2.Card`. `Root` `children` render inside the engine provider, same as v1, for host overlays.
 
 `onComplete` runs only when `complete()` is called on a step that is already terminal and has no `next`. That path does not store `answer` or `completedAt`, so a last step flagged `terminal` cannot both notify the host and become a chat message. Leave the last step unflagged and pass `answer` from `complete()` to show the message. `onComplete` does not run for that first completion.
 
@@ -252,6 +260,13 @@ Completed messages include:
       required: false,
       value: "string",
       description: "Class name for the root column",
+    },
+    {
+      name: "children",
+      required: false,
+      value: "ReactNode",
+      description:
+        "Host overlay rendered inside the engine provider, same as v1",
     },
   ]}
 />

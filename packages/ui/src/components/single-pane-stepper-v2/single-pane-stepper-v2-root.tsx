@@ -6,17 +6,13 @@ import { Layout } from '@components/layout'
 import { Text } from '@components/text'
 import { cn } from '@utils/cn'
 
+import { DEFAULT_REACTIVATION_PROMPT } from '../flow-stepper/default-reactivation-prompt'
 import { FlowEngineProvider, useEngineContext } from '../flow-stepper/engine'
 import { resolveShowRootHeader } from '../flow-stepper/resolve-show-root-header'
 import { useFlowStepperRailModel } from '../flow-stepper/use-flow-stepper-rail-model'
 import { SinglePaneStepperV2LayoutProvider } from './single-pane-stepper-v2-layout-context'
 import { SinglePaneStepperV2Timeline } from './single-pane-stepper-v2-timeline'
 import { SinglePaneStepperV2RootProps } from './single-pane-stepper-v2-types'
-
-const DEFAULT_REACTIVATION_PROMPT = {
-  title: 'Go back?',
-  description: 'Going back to this step will discard your progress on subsequent steps. Are you sure?'
-}
 
 function SinglePaneStepperV2Content({
   title,
@@ -118,7 +114,9 @@ function SinglePaneStepperV2Content({
         onCancel={cancelReactivation}
         theme="warning"
       >
-        <AlertDialog.Content title={prompt.title}>{prompt.description}</AlertDialog.Content>
+        <AlertDialog.Content title={prompt.title}>
+          <p className="cn-stepper-go-back-body">{prompt.description}</p>
+        </AlertDialog.Content>
       </AlertDialog.Root>
     </>
   )
@@ -130,6 +128,7 @@ export function SinglePaneStepperV2Root({
   onReactivate,
   disableAutoScroll,
   initialEngineState,
+  children,
   ...props
 }: SinglePaneStepperV2RootProps) {
   return (
@@ -141,6 +140,7 @@ export function SinglePaneStepperV2Root({
       initialEngineState={initialEngineState}
     >
       <SinglePaneStepperV2Content {...props} />
+      {children}
     </FlowEngineProvider>
   )
 }

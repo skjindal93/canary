@@ -31,6 +31,8 @@ export interface SinglePaneStepperV2RootProps {
   showInactiveSteps?: boolean
   className?: string
   style?: CSSProperties
+  /** Host overlay rendered inside the engine provider, same as v1. */
+  children?: ReactNode
 }
 
 export interface SinglePaneStepperV2CardProps {
