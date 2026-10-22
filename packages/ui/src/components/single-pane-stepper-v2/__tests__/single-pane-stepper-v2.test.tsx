@@ -660,10 +660,10 @@ describe('SinglePaneStepperV2', () => {
         }
       })
       if (useScrollTo) {
-        el.scrollTo = (options?: ScrollToOptions) => {
+        el.scrollTo = ((options?: ScrollToOptions) => {
           behaviors.push(options?.behavior)
           if (typeof options?.top === 'number') scrollTop = options.top
-        }
+        }) as HTMLElement['scrollTo']
       } else {
         Reflect.deleteProperty(el, 'scrollTo')
       }
